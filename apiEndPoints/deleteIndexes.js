@@ -2,7 +2,7 @@
 HANDLE WITH CAUTION: SEARCHING AFTER DELETING MAY CAUSE INTERNAL SERVER ERRORS */
 const express = require("express");
 const router = express.Router();
-const { removeAllIndexes } = require("../elasticSearch/elasticsearch");
+const { client } = require("../elasticSearch/elasticsearch");
 
 router.delete("/", async (req, res) => {
   try {
@@ -14,4 +14,19 @@ router.delete("/", async (req, res) => {
   }
 });
 
-module.exports = router;
+async function removeAllIndexes() {
+  try {
+    const indexNames = await client.cat.indices({ format: "json" });
+
+    for (const index of indexNames.body) {
+      await client.indices.delete({ index: index.index });
+      console.log(`Deleted index: ${index.index}`);
+    }
+
+    console.log("All indexes removed.");
+  } catch (error) {
+    console.error("Error removing indexes:", error);
+  }
+}
+
+module.exports = { router, removeAllIndexes };

@@ -10,11 +10,11 @@ app.listen(3000, () =>
 );
 
 //Index the files on the start of the server
+const { removeAllIndexes } = require("./apiEndPoints/deleteIndexes");
 const {
-  removeAllIndexes,
   ensureIndexExists,
   indexTxtFiles,
-} = require("./elasticSearch/elasticsearch");
+} = require("./apiEndPoints/postIndexes");
 async function initialIndexing() {
   await removeAllIndexes(); // removes the older indexes
   await ensureIndexExists();
@@ -22,9 +22,9 @@ async function initialIndexing() {
 }
 initialIndexing();
 
-const indexEndpoint = require("./apiEndPoints/postIndexes");
+const indexEndpoint = require("./apiEndPoints/postIndexes").router;
 const searchEndpoint = require("./apiEndPoints/searchIndexes");
-const deleteIndexesEndpoint = require("./apiEndPoints/deleteIndexes");
+const deleteIndexesEndpoint = require("./apiEndPoints/deleteIndexes").router;
 
 app.use("/index", indexEndpoint); // POST
 app.use("/search", searchEndpoint); // GET

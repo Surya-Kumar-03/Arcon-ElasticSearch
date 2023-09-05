@@ -1,7 +1,7 @@
 /* Searches for the query via the indexes generated with elastic search */
 const express = require("express");
 const router = express.Router();
-const { searchLogs } = require("../elasticSearch/elasticsearch");
+const { client } = require("../elasticSearch/elasticsearch");
 
 router.get("/", async (req, res) => {
   const { q } = req.query;
@@ -18,5 +18,28 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: "Internal server error." });
   }
 });
+
+async function searchLogs(phrase) {
+  try {
+    const searchResult = await client.search({
+      index: "logs",
+      body: {
+        query: {
+          match: {
+            text_content: phrase,
+          },
+        },
+      },
+    });
+
+    return {
+      hitsCount: searchResult.body.hits.total.value,
+      hits: searchResult.body.hits.hits,
+    };
+  } catch (e) {
+    console.error("Error searching Elasticsearch:", e);
+    throw e;
+  }
+}
 
 module.exports = router;
