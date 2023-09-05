@@ -9,7 +9,7 @@ const {
 
 router.post("/", async (req, res) => {
   try {
-    await removeAllIndexes;
+    await removeAllIndexes();
     await ensureIndexExists();
     await indexTxtFiles();
     res.json({ message: "All files indexed successfully." });
