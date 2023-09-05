@@ -22,9 +22,9 @@ async function initialIndexing() {
 }
 initialIndexing();
 
-const indexEndpoint = require("./apiEndPoints/indexEndpoint");
-const searchEndpoint = require("./apiEndPoints/searchEndpoint");
-const deleteIndexesEndpoint = require("./apiEndPoints/deleteIndexesEndpoint");
+const indexEndpoint = require("./apiEndPoints/postIndexes");
+const searchEndpoint = require("./apiEndPoints/searchIndexes");
+const deleteIndexesEndpoint = require("./apiEndPoints/deleteIndexes");
 
 app.use("/index", indexEndpoint); // POST
 app.use("/search", searchEndpoint); // GET
