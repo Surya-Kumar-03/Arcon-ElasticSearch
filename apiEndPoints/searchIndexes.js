@@ -7,7 +7,7 @@ router.get("/", async (req, res) => {
   const { q } = req.query;
 
   if (!q) {
-    return res.status(400).json({ error: "Query parameter 'q' is required." });
+    return res.status(200).json({});
   }
 
   try {
@@ -32,9 +32,13 @@ async function searchLogs(phrase) {
       },
     });
 
+    const hits = searchResult.body.hits.hits.map(
+      (hit) => hit._source.text_content
+    );
+
     return {
-      hitsCount: searchResult.body.hits.total.value,
-      hits: searchResult.body.hits.hits,
+      hitsCount: hits.length,
+      hits,
     };
   } catch (e) {
     console.error("Error searching Elasticsearch:", e);

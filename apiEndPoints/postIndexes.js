@@ -33,19 +33,24 @@ async function indexTxtFiles() {
       const filePath = path.join(logFolder, file);
       const content = fs.readFileSync(filePath, "utf8");
 
-      await client.index({
-        index: "logs",
-        type: "_doc",
-        body: {
-          text_content: content,
-        },
-      });
+      // Split the content into rows based on a delimiter (e.g., newline)
+      const rows = content.split("\n");
 
-      console.log(`Indexed TXT file: ${file}`);
+      for (const row of rows) {
+        // Index each row as a separate document
+        await client.index({
+          index: "logs",
+          type: "_doc",
+          body: {
+            text_content: row, // Index the row as text_content
+          },
+        });
+
+        console.log(`Indexed row from file ${file}: ${row}`);
+      }
     }
   } catch (error) {
     console.error("Error indexing TXT files:", error);
   }
 }
-
 module.exports = { router, ensureIndexExists, indexTxtFiles };
