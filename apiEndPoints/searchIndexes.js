@@ -38,7 +38,7 @@ async function searchLogs(queryData) {
     const nonEmptyKeysCount = Object.values(queryData).filter(
       (value) => value !== ""
     ).length;
-    console.log(nonEmptyKeysCount)
+    console.log(nonEmptyKeysCount);
 
     const searchResult = await client.search({
       index: "logs",
@@ -47,26 +47,20 @@ async function searchLogs(queryData) {
           bool: {
             should: [
               {
-                regexp: {
-                  sul_id: `${sul_id}`,
+                match: {
+                  sul_id: sul_id,
                 },
               },
               {
-                regexp: {
-                  sul_user_id: `${sul_user_id}`,
+                match: {
+                  sul_user_id: sul_user_id,
                 },
               },
-              // {
-              //   bool: {
-              //     should: [
-              //       {
-              //         regexp: {
-              //           sul_ipaddress: `.*${sul_ipaddress}.*`,
-              //         },
-              //       },
-              //     ],
-              //   },
-              // },
+              {
+                wildcard: {
+                  sul_ipaddress: `*${sul_ipaddress}*`,
+                },
+              },
               // {
               //   range: {
               //     sul_active_from: {
