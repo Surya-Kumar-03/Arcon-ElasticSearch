@@ -33,24 +33,52 @@ async function indexTxtFiles() {
       const filePath = path.join(logFolder, file);
       const content = fs.readFileSync(filePath, "utf8");
 
-      // Split the content into rows based on a delimiter (e.g., newline)
+      // Splits the content into rows based on a delimiter (e.g., newline)
       const rows = content.split("\n");
 
       for (const row of rows) {
-        // Index each row as a separate document
+        const columns = row.split("|");
+        if (columns.length !== 16) {
+          console.error(
+            `Skipping row in ${file} due to invalid format: ${row}`
+          );
+          continue;
+        }
+
+        // Create a structured document with column names
+        const logDocument = {
+          sul_id: columns[0],
+          sul_user_id: columns[1],
+          sul_ipaddress: columns[2],
+          sul_active_from: columns[3],
+          sul_active_till: columns[4],
+          sul_timestamped_on: columns[5],
+          sul_logout_flag: columns[6],
+          sul_UserName: columns[7],
+          sul_User_Display_Name: columns[8],
+          sul_User_Type: columns[9],
+          sul_User_Type_ID: columns[10],
+          sul_sessionstarttime_source: columns[11],
+          sul_sessionendtime_source: columns[12],
+          sul_host_region_timezone: columns[13],
+          sul_sessionfor: columns[14],
+          sul_connectiontype: columns[15], 
+          file_name: file, // file name to indentify
+        };
+
+        // Index each document
         await client.index({
           index: "logs",
-          type: "_doc",
-          body: {
-            text_content: row, // Index the row as text_content
-          },
+          body: logDocument, 
+          type: "_doc"
         });
 
-        console.log(`Indexed row from file ${file}: ${row}`);
+        console.log(`Indexed row from file ${file}:`, logDocument);
       }
     }
   } catch (error) {
     console.error("Error indexing TXT files:", error);
   }
 }
+
 module.exports = { router, ensureIndexExists, indexTxtFiles };

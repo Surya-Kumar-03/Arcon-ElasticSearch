@@ -6,7 +6,7 @@ export default function SearchBar({ setSearch, search }) {
     <TextField
       autoComplete="off"
       onChange={(e) => setSearch(e.target.value)}
-      label="Search for logs here..."
+      label="Search via user ip here..."
       value={search}
       placeholder="Start typing..."
       size="medium"

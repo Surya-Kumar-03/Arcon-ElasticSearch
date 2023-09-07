@@ -8,12 +8,16 @@ export default function DisplayRes({ data }) {
   return (
     <div className="flex flex-col gap-3 w-full justify-center items-center my-4">
       {data.length > 0
-        ? data.map((ele, index) => (
+        ? data.map((obj, index) => (
             <div
               key={index}
               className="flex flex-col w-10/12 border border-gray-300 rounded-md p-3"
             >
-              {ele}
+              {Object.entries(obj).map(([key, value], subIndex) => (
+                <div key={subIndex}>
+                  <span className="font-bold">{key}:</span> {value}
+                </div>
+              ))}
             </div>
           ))
         : "No Results Found!"}
