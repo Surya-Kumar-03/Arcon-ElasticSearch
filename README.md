@@ -35,3 +35,45 @@ Single Log Format :
 Elastic Search: 
 Indexing Duration : 13 mins 44 secs
 Index Size: 48 MB (More than 3 times the data logs' initial size)
+
+
+
+Batch the logs (Don't send individually, network is also not burdened with this approach)
+implement sharding, don't keep all in one (make elastic search run in parallel)
+
+Create Index Template of the fields we are gonna use (Avoids dynamic mapping)
+
+Time Frequent Index Creation	
+we can shard each field so that we can activate that shard if filled
+
+Disable _source field: -> removes the orginal copy of JSON document
+Remove the search fields which aren't used
+skip the fields which are not needed to be indexed
+
+
+We can measure performance of each query and then make decisions:
+response = es.search(index="logs", body={
+    "query": { "match_all": {} }
+}, params={"profile": "true"})
+print(response['profile'])
+
+
+always use date ranges for faster search
+we need to delete logs so that the logs don't become too big for indexing
+remove old indexes too
+
+
+Use Rollup Jobs:
+If you have time-based indices, consider using Elasticsearch Rollup Jobs to summarize and reduce data in older indices.
+
+Implement Pagination:
+Search After API instead of using the from parameter. Search After can be more efficient for large result sets.
+
+Force Merge:
+Use the force merge API to optimize the index by reducing the number of segments. This can improve search performance and reduce disk space usage.
+
+
+Bugs: 
+fix the ip field for search string with spaces
+fix the string field which has +=[]
+fix the date fields to work for months and time

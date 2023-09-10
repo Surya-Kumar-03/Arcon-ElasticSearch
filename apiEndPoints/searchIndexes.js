@@ -27,6 +27,7 @@ async function searchLogs(queryData) {
       sul_ipaddress,
       sul_active_from,
       sul_active_till,
+      sul_timestamped_on,
       sul_logout_flag,
       sul_UserName,
       sul_User_Display_Name,
@@ -51,12 +52,79 @@ async function searchLogs(queryData) {
           sul_user_id: sul_user_id,
         },
       },
+      {
+        match: {
+          sul_logout_flag: sul_logout_flag,
+        },
+      },
+      {
+        match: {
+          sul_User_Type: sul_User_Type,
+        },
+      },
+      {
+        match: {
+          file_name: file_name,
+        },
+      },
     ];
 
-    if (sul_ipaddress != "") {
+    if (sul_ipaddress !== "") {
       conditions.push({
         wildcard: {
           sul_ipaddress: `*${sul_ipaddress}*`,
+        },
+      });
+    }
+
+    if (sul_UserName !== "") {
+      conditions.push({
+        wildcard: {
+          sul_UserName: `*${sul_UserName}*`,
+        },
+      });
+    }
+
+    if (sul_User_Display_Name !== "") {
+      conditions.push({
+        wildcard: {
+          sul_User_Display_Name: `*${sul_User_Display_Name}*`,
+        },
+      });
+    }
+
+    if (sul_active_from !== "") {
+      conditions.push({
+        range: {
+          sul_active_from: {
+            gte: sul_active_from,
+            lte: sul_active_from,
+            format: "yyyy-MM-dd HH:mm:ss.SSSSSSSSS",
+          },
+        },
+      });
+    }
+
+    if (sul_active_till !== "") {
+      conditions.push({
+        range: {
+          sul_active_till: {
+            gte: sul_active_till,
+            lte: sul_active_till,
+            format: "yyyy-MM-dd HH:mm:ss.SSSSSSSSS",
+          },
+        },
+      });
+    }
+
+    if (sul_timestamped_on !== "") {
+      conditions.push({
+        range: {
+          sul_active_till: {
+            gte: sul_timestamped_on,
+            lte: sul_timestamped_on,
+            format: "yyyy-MM-dd HH:mm:ss.SSSSSSSSS",
+          },
         },
       });
     }
@@ -148,6 +216,13 @@ async function searchLogs(queryData) {
     console.error("Error searching Elasticsearch:", e);
     throw e;
   }
+}
+
+function convertDateToFrontendFormat(dateString) {
+  if (!dateString) return;
+  console.log(dateString);
+  const date = new Date(dateString);
+  return date.toISOString();
 }
 
 module.exports = router;

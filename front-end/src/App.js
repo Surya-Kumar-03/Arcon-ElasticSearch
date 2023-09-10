@@ -32,7 +32,7 @@ function App() {
     setFormData({ ...formData, [name]: value });
   };
 
-  async function handleSubmit(event) {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     try {
       const response = await axios.post(
@@ -46,7 +46,7 @@ function App() {
     } catch (error) {
       console.error("Error:", error);
     }
-  }
+  };
 
   const [updating, setUpdating] = useState(false);
   async function updateLogs() {

@@ -63,7 +63,7 @@ async function indexTxtFiles() {
           sul_host_region_timezone: columns[13],
           sul_sessionfor: columns[14],
           sul_connectiontype: columns[15], 
-          file_name: file, // file name to indentify
+          file_name: file, // file name to identify
         };
 
         // Index each document
