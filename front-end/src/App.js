@@ -11,8 +11,10 @@ function App() {
     sul_id: "",
     sul_user_id: "",
     sul_ipaddress: "",
-    sul_active_from: "",
-    sul_active_till: "",
+    sul_active_from_start: "",
+    sul_active_from_end: "",
+    sul_active_till_start: "",
+    sul_active_till_end: "",
     sul_timestamped_on: "",
     sul_logout_flag: "",
     sul_UserName: "",
@@ -42,6 +44,7 @@ function App() {
       if (response.status === 200) {
         console.log(response.data.hits);
         setData(response.data.hits);
+        setMatchCount(response.data.hits.length);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -57,6 +60,7 @@ function App() {
   }
 
   const [deleting, setDeleting] = useState(false);
+  const [matchCount, setMatchCount] = useState(0);
 
   async function deleteLogs() {
     const response = await axios.delete(`http://localhost:8000/index`);
@@ -93,6 +97,9 @@ function App() {
             >
               Search
             </Button>
+            <div className="p-3 border border-gray-300 rounded-md font-bold">
+              Matches: {matchCount}
+            </div>
           </form>
         </div>
         <div className="flex flex-row w-1/2 gap-3">

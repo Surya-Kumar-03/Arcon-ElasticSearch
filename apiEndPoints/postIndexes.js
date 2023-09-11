@@ -45,14 +45,29 @@ async function indexTxtFiles() {
           continue;
         }
 
+        const logTimestamp = new Date(columns[3]);
+
+        // Format the date to ISO 8601 format
+        const isoSul_active_from = logTimestamp.toISOString();
+
+        const logTimestamp2 = new Date(columns[4]);
+
+        // Format the date to ISO 8601 format
+        const isoSul_active_till = logTimestamp2.toISOString();
+
+        const logTimestamp3 = new Date(columns[5]);
+
+        // Format the date to ISO 8601 format
+        const isoTimeStamp = logTimestamp3.toISOString();
+
         // Create a structured document with column names
         const logDocument = {
           sul_id: columns[0],
           sul_user_id: columns[1],
           sul_ipaddress: columns[2],
-          sul_active_from: columns[3],
-          sul_active_till: columns[4],
-          sul_timestamped_on: columns[5],
+          sul_active_from: isoSul_active_from,
+          sul_active_till: isoSul_active_till,
+          sul_timestamped_on: isoTimeStamp,
           sul_logout_flag: columns[6],
           sul_UserName: columns[7],
           sul_User_Display_Name: columns[8],
@@ -62,15 +77,15 @@ async function indexTxtFiles() {
           sul_sessionendtime_source: columns[12],
           sul_host_region_timezone: columns[13],
           sul_sessionfor: columns[14],
-          sul_connectiontype: columns[15], 
+          sul_connectiontype: columns[15],
           file_name: file, // file name to identify
         };
 
         // Index each document
         await client.index({
           index: "logs",
-          body: logDocument, 
-          type: "_doc"
+          body: logDocument,
+          type: "_doc",
         });
 
         console.log(`Indexed row from file ${file}:`, logDocument);

@@ -25,8 +25,10 @@ async function searchLogs(queryData) {
       sul_id,
       sul_user_id,
       sul_ipaddress,
-      sul_active_from,
-      sul_active_till,
+      sul_active_from_start,
+      sul_active_from_end,
+      sul_active_till_start,
+      sul_active_till_end,
       sul_timestamped_on,
       sul_logout_flag,
       sul_UserName,
@@ -93,25 +95,25 @@ async function searchLogs(queryData) {
       });
     }
 
-    if (sul_active_from !== "") {
-      conditions.push({
+    const dates = [];
+
+    if (sul_active_from_start !== "" && sul_active_from_end !== "") {
+      dates.push({
         range: {
           sul_active_from: {
-            gte: sul_active_from,
-            lte: sul_active_from,
-            format: "yyyy-MM-dd HH:mm:ss.SSSSSSSSS",
+            gte: sul_active_from_start,
+            lte: sul_active_from_end,
           },
         },
       });
     }
 
-    if (sul_active_till !== "") {
-      conditions.push({
+    if (sul_active_till_start !== "" && sul_active_till_end !== "") {
+      dates.push({
         range: {
           sul_active_till: {
-            gte: sul_active_till,
-            lte: sul_active_till,
-            format: "yyyy-MM-dd HH:mm:ss.SSSSSSSSS",
+            gte: sul_active_till_start,
+            lte: sul_active_till_end,
           },
         },
       });
@@ -120,87 +122,32 @@ async function searchLogs(queryData) {
     if (sul_timestamped_on !== "") {
       conditions.push({
         range: {
-          sul_active_till: {
+          sul_timestamped_on: {
             gte: sul_timestamped_on,
             lte: sul_timestamped_on,
-            format: "yyyy-MM-dd HH:mm:ss.SSSSSSSSS",
           },
         },
       });
     }
 
+    console.log(dates);
     const searchResult = await client.search({
       index: "logs",
       body: {
         query: {
           bool: {
-            should: conditions,
-            // [
-            // {
-            //   range: {
-            //     sul_active_from: {
-            //       gte: sul_active_from,
-            //       lte: sul_active_till || "now",
-            //       format: "yyyy-MM-dd HH:mm:ss.SSSSSSSSS",
-            //     },
-            //   },
-            // },
-            // {
-            //   regexp: {
-            //     sul_logout_flag: `.*${sul_logout_flag}.*`,
-            //   },
-            // },
-            // {
-            //   bool: {
-            //     should: [
-            //       {
-            //         regexp: {
-            //           sul_UserName: `.*${sul_UserName}.*`,
-            //         },
-            //       },
-            //     ],
-            //   },
-            // },
-            // {
-            //   bool: {
-            //     should: [
-            //       {
-            //         regexp: {
-            //           sul_User_Display_Name: `.*${sul_User_Display_Name}.*`,
-            //         },
-            //       },
-            //     ],
-            //   },
-            // },
-            // {
-            //   bool: {
-            //     should: [
-            //       {
-            //         regexp: {
-            //           sul_User_Type: `.*${sul_User_Type}.*`,
-            //         },
-            //       },
-            //     ],
-            //   },
-            // },
-            // {
-            //   regexp: {
-            //     file_name: `.*${file_name}.*`,
-            //   },
-            // },
-            // {
-            //   bool: {
-            //     should: [
-            //       {
-            //         regexp: {
-            //           sul_connectiontype: `.*${sul_connectiontype}.*`,
-            //         },
-            //       },
-            //     ],
-            //   },
-            // },
-            // ],
-            minimum_should_match: nonEmptyKeysCount,
+            must: [
+              {
+                bool: {
+                  should: conditions,
+                },
+              },
+              {
+                bool: {
+                  filter: dates,
+                },
+              },
+            ],
           },
         },
       },
@@ -218,94 +165,11 @@ async function searchLogs(queryData) {
   }
 }
 
-function convertDateToFrontendFormat(dateString) {
-  if (!dateString) return;
-  console.log(dateString);
-  const date = new Date(dateString);
-  return date.toISOString();
-}
+// function convertDateToFrontendFormat(dateString) {
+//   if (!dateString) return;
+//   console.log(dateString);
+//   const date = new Date(dateString);
+//   return date.toISOString();
+// }
 
 module.exports = router;
-
-// async function searchLogs(phrase) {
-//   try {
-//     const searchResult = await client.search({
-//       index: "logs",
-//       body: {
-//         query: {
-//           bool: {
-//             should: [
-//               {
-//                 wildcard: {
-//                   text_content: {
-//                     value: `*${phrase}*`,
-//                   },
-//                 },
-//               },
-//               {
-//                 fuzzy: {
-//                   text_content: {
-//                     value: phrase,
-//                     fuzziness: "AUTO",
-//                   },
-//                 },
-//               },
-//             ],
-//           },
-//         },
-//       },
-//     });
-
-//     const hits = searchResult.body.hits.hits.map(
-//       (hit) => hit._source.text_content
-//     );
-
-//     return {
-//       hitsCount: hits.length,
-//       hits,
-//     };
-//   } catch (e) {
-//     console.error("Error searching Elasticsearch:", e);
-//     throw e;
-//   }
-// }
-
-// async function searchLogs(query) {
-//   try {
-//     const searchResult = await client.search({
-//       index: "logs", // Replace with your index name
-//       body: {
-//         query: {
-//           bool: {
-//             should: [
-//               {
-//                 match: {
-//                   sul_ipaddress: {
-//                     query: query,
-//                     fuzziness: "AUTO",
-//                   },
-//                 },
-//               },
-//               {
-//                 wildcard: {
-//                   sul_ipaddress: `*${query}*`,
-//                 },
-//               },
-//             ],
-//             minimum_should_match: 1,
-//           },
-//         },
-//       },
-//     });
-
-//     const hits = searchResult.body.hits.hits.map((hit) => hit._source);
-
-//     return {
-//       hitsCount: hits.length,
-//       hits,
-//     };
-//   } catch (e) {
-//     console.error("Error searching Elasticsearch:", e);
-//     throw e;
-//   }
-// }
