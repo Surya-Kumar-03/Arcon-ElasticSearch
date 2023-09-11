@@ -76,4 +76,3 @@ Use the force merge API to optimize the index by reducing the number of segments
 Bugs: 
 fix the ip field for search string with spaces
 fix the string field which has +=[]
-fix the date fields to work for months and time
