@@ -22,20 +22,15 @@ router.post("/", async (req, res) => {
 async function searchLogs(queryData) {
   try {
     const {
-      sul_id,
-      sul_user_id,
-      sul_ipaddress,
-      sul_active_from_start,
-      sul_active_from_end,
-      sul_active_till_start,
-      sul_active_till_end,
-      sul_timestamped_on,
-      sul_logout_flag,
-      sul_UserName,
-      sul_User_Display_Name,
-      sul_User_Type,
-      file_name,
-      sul_connectiontype,
+      dbl_id,
+      ssl_log_id,
+      dbl_command,
+      dba_last_logged_in_start,
+      dba_last_logged_in_end,
+      dba_user_id,
+      dba_user_display_name,
+      dba_ipaddress_desktop,
+      dbs_servicetype
     } = queryData;
 
     const nonEmptyKeysCount = Object.values(queryData).filter(
@@ -46,85 +41,51 @@ async function searchLogs(queryData) {
     const conditions = [
       {
         match: {
-          sul_id: sul_id,
+          dbl_id: dbl_id,
         },
       },
       {
         match: {
-          sul_user_id: sul_user_id,
+          ssl_log_id: ssl_log_id,
         },
       },
       {
         match: {
-          sul_logout_flag: sul_logout_flag,
+          dba_ipaddress_desktop: dba_ipaddress_desktop,
         },
       },
       {
         match: {
-          sul_User_Type: sul_User_Type,
-        },
-      },
-      {
-        match: {
-          file_name: file_name,
-        },
-      },
+          dbs_servicetype: dbs_servicetype,
+        }
+      }
     ];
 
-    if (sul_ipaddress !== "") {
+    if (dbl_command !== "") {
       conditions.push({
         wildcard: {
-          sul_ipaddress: `*${sul_ipaddress}*`,
+          dbl_command: `*${dbl_command}*`,
         },
       });
     }
 
-    if (sul_UserName !== "") {
-      conditions.push({
-        wildcard: {
-          sul_UserName: `*${sul_UserName}*`,
-        },
-      });
-    }
 
-    if (sul_User_Display_Name !== "") {
+    if (dba_user_display_name !== "") {
       conditions.push({
         wildcard: {
-          sul_User_Display_Name: `*${sul_User_Display_Name}*`,
+          dba_user_display_name: `*${dba_user_display_name}*`,
         },
       });
     }
 
     const dates = [];
 
-    if (sul_active_from_start !== "" && sul_active_from_end !== "") {
+    if (dba_last_logged_in_start !== "" && dba_last_logged_in_end !== "") {
       dates.push({
         range: {
-          sul_active_from: {
-            gte: sul_active_from_start,
-            lte: sul_active_from_end,
-          },
-        },
-      });
-    }
-
-    if (sul_active_till_start !== "" && sul_active_till_end !== "") {
-      dates.push({
-        range: {
-          sul_active_till: {
-            gte: sul_active_till_start,
-            lte: sul_active_till_end,
-          },
-        },
-      });
-    }
-
-    if (sul_timestamped_on !== "") {
-      conditions.push({
-        range: {
-          sul_timestamped_on: {
-            gte: sul_timestamped_on,
-            lte: sul_timestamped_on,
+          dba_last_logged_in: {
+            gte: dba_last_logged_in_start,
+            lte: dba_last_logged_in_end,
           },
         },
       });
@@ -136,7 +97,7 @@ async function searchLogs(queryData) {
       body: {
         query: {
           bool: {
-            must: [
+            should: [
               {
                 bool: {
                   should: conditions,

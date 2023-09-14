@@ -35,51 +35,39 @@ async function indexTxtFiles() {
 
       // Splits the content into rows based on a delimiter (e.g., newline)
       const rows = content.split("\n");
-
+      const startTime = performance.now();
       for (const row of rows) {
         const columns = row.split("|");
-        if (columns.length !== 16) {
+        if (columns.length !== 28) {
           console.error(
             `Skipping row in ${file} due to invalid format: ${row}`
           );
           continue;
         }
 
-        const logTimestamp = new Date(columns[3]);
+        function convertToISOString(dateStr) {
+          var dateParts = dateStr.split(' ');
+          var date = dateParts[0];
+          var time = dateParts[1];
 
-        // Format the date to ISO 8601 format
-        const isoSul_active_from = logTimestamp.toISOString();
+          var isoString = date + 'T' + time + 'Z';
+          return isoString;
+        }
 
-        const logTimestamp2 = new Date(columns[4]);
-
-        // Format the date to ISO 8601 format
-        const isoSul_active_till = logTimestamp2.toISOString();
-
-        const logTimestamp3 = new Date(columns[5]);
-
-        // Format the date to ISO 8601 format
-        const isoTimeStamp = logTimestamp3.toISOString();
 
         // Create a structured document with column names
         const logDocument = {
-          sul_id: columns[0],
-          sul_user_id: columns[1],
-          sul_ipaddress: columns[2],
-          sul_active_from: isoSul_active_from,
-          sul_active_till: isoSul_active_till,
-          sul_timestamped_on: isoTimeStamp,
-          sul_logout_flag: columns[6],
-          sul_UserName: columns[7],
-          sul_User_Display_Name: columns[8],
-          sul_User_Type: columns[9],
-          sul_User_Type_ID: columns[10],
-          sul_sessionstarttime_source: columns[11],
-          sul_sessionendtime_source: columns[12],
-          sul_host_region_timezone: columns[13],
-          sul_sessionfor: columns[14],
-          sul_connectiontype: columns[15],
+          dbl_id: columns[0],
+          ssl_log_id: columns[1],
+          dbl_command: columns[2],
+          dba_last_logged_in: convertToISOString(columns[4]),
+          dba_user_id: columns[8],
+          dba_user_display_name: columns[9],
+          dba_ipaddress_desktop: columns[10],
+          dbs_servicetype: columns[11],
           file_name: file, // file name to identify
         };
+
 
         // Index each document
         await client.index({
@@ -90,6 +78,13 @@ async function indexTxtFiles() {
 
         console.log(`Indexed row from file ${file}:`, logDocument);
       }
+      const endTime = performance.now();
+      const timeTaken = endTime - startTime;
+
+      const hours = Math.floor(timeTaken / 3600000);
+      const minutes = Math.floor((timeTaken % 3600000) / 60000);
+      const seconds = ((timeTaken % 3600000) % 60000) / 1000;
+      console.log("Time taken for indexing is " + hours + " hours " + minutes + " minutes " + seconds + " seconds.");
     }
   } catch (error) {
     console.error("Error indexing TXT files:", error);
