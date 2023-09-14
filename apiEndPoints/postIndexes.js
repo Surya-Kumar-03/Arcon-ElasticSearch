@@ -1,8 +1,9 @@
-/* Indexes all the log files to elastic search for faster retrieval */
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const router = express.Router();
+const csvParser = require("csv-parser");
+
 const { client, logFolder } = require("../elasticSearch/elasticsearch");
 const { removeAllIndexes } = require("./deleteIndexes");
 
@@ -10,8 +11,8 @@ router.post("/", async (req, res) => {
   try {
     await removeAllIndexes();
     await ensureIndexExists();
-    await indexTxtFiles();
-    res.json({ message: "All files indexed successfully." });
+    await indexCsvFile();
+    res.json({ message: "CSV file indexed successfully." });
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Internal server error." });
@@ -25,84 +26,69 @@ async function ensureIndexExists() {
   }
 }
 
-async function indexTxtFiles() {
+async function indexCsvFile() {
   try {
-    const logFiles = fs.readdirSync(logFolder);
+    const filePath = path.join(logFolder, "test.csv");
 
-    for (const file of logFiles) {
-      const filePath = path.join(logFolder, file);
-
-      const readStream = fs.createReadStream(filePath, "utf8");
-      const batch = [];
-      let rowsProcessed = 0;
-
-      readStream.on("data", (chunk) => {
-        // Process the chunk (e.g., split into rows, process rows)
-        const rows = chunk.split("\n");
-
-        for (const row of rows) {
-          const columns = row.split("|");
-          if (columns.length !== 28) {
-            console.error(
-              `Skipping row in ${file} due to invalid format: ${row}`
-            );
-            continue;
-          }
-
-          const logDocument = {
-            dbl_id: columns[0],
-            ssl_log_id: columns[1],
-            dbl_command: columns[2],
-            dba_last_logged_in: convertToISOString(columns[4]),
-            dba_user_id: columns[8],
-            dba_user_display_name: columns[9],
-            dba_ipaddress_desktop: columns[10],
-            dbs_servicetype: columns[11],
-            file_name: file,
-          };
-
-          batch.push({ index: { _index: "logs", _type: "_doc" } });
-          batch.push(logDocument);
-
-          rowsProcessed++;
-
-          if (batch.length >= 1000) {
-            readStream.pause(); // Pause reading to avoid excessive memory use
-            client.bulk({ body: batch }, (err, response) => {
-              if (err) {
-                console.error("Error during bulk indexing:", err);
-                // Implement error handling and retries as needed
-              } else {
-                console.log(`Indexed rows from file ${file}: ${rowsProcessed}`);
-                batch.length = 0; // Reset batch
-                readStream.resume(); // Resume reading
-              }
-            });
-          }
-        }
-      });
-
-      readStream.on("end", () => {
-        if (batch.length > 0) {
-          client.bulk({ body: batch }, (err, response) => {
-            if (err) {
-              console.error("Error during bulk indexing:", err);
-              // Implement error handling and retries as needed
-            } else {
-              console.log(`Indexed rows from file ${file}: ${rowsProcessed}`);
-            }
-          });
-        }
-      });
+    if (!fs.existsSync(filePath)) {
+      console.error(`CSV file not found at ${filePath}`);
+      return;
     }
+
+    const bulkRequestBody = [];
+
+    function convertToISOString(dateStr) {
+      if (dateStr == null) return "";
+      var dateParts = dateStr.split(" ");
+      var date = dateParts[0];
+      var time = dateParts[1];
+
+      var isoString = date + "T" + time + "Z";
+      return isoString;
+    }
+
+    fs.createReadStream(filePath, "utf8")
+      .pipe(csvParser())
+      .on("data", (data) => {
+        const jsonData = {
+          dbl_id: data.dbl_id,
+          ssl_log_id: data.ssl_log_id,
+          dbl_command: data.dbl_command,
+          dba_last_logged_in: convertToISOString(data.dba_last_logged_in),
+          dba_user_id: data.dba_user_id,
+          dba_user_display_name: data.dba_user_display_name,
+          dba_ipaddress_desktop: data.dba_ipaddress_desktop,
+          dbs_servicetype: data.dbs_servicetype,
+        };
+
+        bulkRequestBody.push({
+          index: { _index: "logs", _type: "_doc" },
+        });
+
+        bulkRequestBody.push(jsonData);
+      })
+      .on("end", () => {
+        if (bulkRequestBody.length > 0) {
+          client
+            .bulk({ body: bulkRequestBody })
+            .then((response) => {
+              if (response.body.errors) {
+                console.error(
+                  "Error during bulk indexing:",
+                  response.body.errors
+                );
+              } else {
+                console.log("CSV file indexed successfully.");
+              }
+            })
+            .catch((error) => {
+              console.error("Error during bulk indexing:", error);
+            });
+        }
+      });
   } catch (error) {
-    console.error("Error indexing TXT files:", error);
+    console.error("Error indexing CSV file:", error);
   }
 }
 
-function convertToISOString(dateStr) {
-  const [date, time] = dateStr.split(" ");
-  return `${date}T${time}Z`;
-}
-
-module.exports = { router, ensureIndexExists, indexTxtFiles };
+module.exports = { router, ensureIndexExists, indexCsvFile };
