@@ -31,64 +31,78 @@ async function indexTxtFiles() {
 
     for (const file of logFiles) {
       const filePath = path.join(logFolder, file);
-      const content = fs.readFileSync(filePath, "utf8");
 
-      // Splits the content into rows based on a delimiter (e.g., newline)
-      const rows = content.split("\n");
-      const startTime = performance.now();
-      for (const row of rows) {
-        const columns = row.split("|");
-        if (columns.length !== 28) {
-          console.error(
-            `Skipping row in ${file} due to invalid format: ${row}`
-          );
-          continue;
+      const readStream = fs.createReadStream(filePath, "utf8");
+      const batch = [];
+      let rowsProcessed = 0;
+
+      readStream.on("data", (chunk) => {
+        // Process the chunk (e.g., split into rows, process rows)
+        const rows = chunk.split("\n");
+
+        for (const row of rows) {
+          const columns = row.split("|");
+          if (columns.length !== 28) {
+            console.error(
+              `Skipping row in ${file} due to invalid format: ${row}`
+            );
+            continue;
+          }
+
+          const logDocument = {
+            dbl_id: columns[0],
+            ssl_log_id: columns[1],
+            dbl_command: columns[2],
+            dba_last_logged_in: convertToISOString(columns[4]),
+            dba_user_id: columns[8],
+            dba_user_display_name: columns[9],
+            dba_ipaddress_desktop: columns[10],
+            dbs_servicetype: columns[11],
+            file_name: file,
+          };
+
+          batch.push({ index: { _index: "logs", _type: "_doc" } });
+          batch.push(logDocument);
+
+          rowsProcessed++;
+
+          if (batch.length >= 1000) {
+            readStream.pause(); // Pause reading to avoid excessive memory use
+            client.bulk({ body: batch }, (err, response) => {
+              if (err) {
+                console.error("Error during bulk indexing:", err);
+                // Implement error handling and retries as needed
+              } else {
+                console.log(`Indexed rows from file ${file}: ${rowsProcessed}`);
+                batch.length = 0; // Reset batch
+                readStream.resume(); // Resume reading
+              }
+            });
+          }
         }
+      });
 
-        function convertToISOString(dateStr) {
-          var dateParts = dateStr.split(' ');
-          var date = dateParts[0];
-          var time = dateParts[1];
-
-          var isoString = date + 'T' + time + 'Z';
-          return isoString;
+      readStream.on("end", () => {
+        if (batch.length > 0) {
+          client.bulk({ body: batch }, (err, response) => {
+            if (err) {
+              console.error("Error during bulk indexing:", err);
+              // Implement error handling and retries as needed
+            } else {
+              console.log(`Indexed rows from file ${file}: ${rowsProcessed}`);
+            }
+          });
         }
-
-
-        // Create a structured document with column names
-        const logDocument = {
-          dbl_id: columns[0],
-          ssl_log_id: columns[1],
-          dbl_command: columns[2],
-          dba_last_logged_in: convertToISOString(columns[4]),
-          dba_user_id: columns[8],
-          dba_user_display_name: columns[9],
-          dba_ipaddress_desktop: columns[10],
-          dbs_servicetype: columns[11],
-          file_name: file, // file name to identify
-        };
-
-
-        // Index each document
-        await client.index({
-          index: "logs",
-          body: logDocument,
-          type: "_doc",
-        });
-
-        console.log(`Indexed row from file ${file}:`, logDocument);
-      }
-      const endTime = performance.now();
-      const timeTaken = endTime - startTime;
-
-      const hours = Math.floor(timeTaken / 3600000);
-      const minutes = Math.floor((timeTaken % 3600000) / 60000);
-      const seconds = ((timeTaken % 3600000) % 60000) / 1000;
-      console.log("Time taken for indexing is " + hours + " hours " + minutes + " minutes " + seconds + " seconds.");
+      });
     }
   } catch (error) {
     console.error("Error indexing TXT files:", error);
   }
+}
+
+function convertToISOString(dateStr) {
+  const [date, time] = dateStr.split(" ");
+  return `${date}T${time}Z`;
 }
 
 module.exports = { router, ensureIndexExists, indexTxtFiles };
