@@ -37,28 +37,12 @@ async function indexCsvFile() {
 
     const bulkRequestBody = [];
 
-    function convertToISOString(dateStr) {
-      if (dateStr == null) return "";
-      var dateParts = dateStr.split(" ");
-      var date = dateParts[0];
-      var time = dateParts[1];
-
-      var isoString = date + "T" + time + "Z";
-      return isoString;
-    }
-
     fs.createReadStream(filePath, "utf8")
       .pipe(csvParser())
       .on("data", (data) => {
         const jsonData = {
-          dbl_id: data.dbl_id,
-          ssl_log_id: data.ssl_log_id,
-          dbl_command: data.dbl_command,
-          dba_last_logged_in: convertToISOString(data.dba_last_logged_in),
-          dba_user_id: data.dba_user_id,
-          dba_user_display_name: data.dba_user_display_name,
-          dba_ipaddress_desktop: data.dba_ipaddress_desktop,
-          dbs_servicetype: data.dbs_servicetype,
+          time: data.time,
+          uri_path: data.uri_path,
         };
 
         bulkRequestBody.push({

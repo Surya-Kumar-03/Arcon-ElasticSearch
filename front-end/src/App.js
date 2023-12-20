@@ -7,16 +7,10 @@ import { Button } from "@mui/material";
 
 function App() {
   const [data, setData] = useState({});
-  const [formData, setFormData] = useState({ //input indexes here
-    dbl_id: "",
-    ssl_log_id: "",
-    dbl_command: "",
-    dba_last_logged_in_start: "",
-    dba_last_logged_in_end: "",
-    dba_user_id: "",
-    dba_user_display_name: "",
-    dba_ipaddress_desktop: "",
-    dbs_servicetype: "",
+  const [formData, setFormData] = useState({
+    //input indexes here
+    time: "",
+    uri_path: "",
   });
 
   const handleChange = (event) => {

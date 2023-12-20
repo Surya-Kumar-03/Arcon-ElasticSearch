@@ -21,75 +21,20 @@ router.post("/", async (req, res) => {
 
 async function searchLogs(queryData) {
   try {
-    const {
-      dbl_id,
-      ssl_log_id,
-      dbl_command,
-      dba_last_logged_in_start,
-      dba_last_logged_in_end,
-      dba_user_id,
-      dba_user_display_name,
-      dba_ipaddress_desktop,
-      dbs_servicetype
-    } = queryData;
-
-    const nonEmptyKeysCount = Object.values(queryData).filter(
-      (value) => value !== ""
-    ).length;
-    console.log(nonEmptyKeysCount);
+    const { time, uri_path } = queryData;
 
     const conditions = [
       {
         match: {
-          dbl_id: dbl_id,
+          time: time,
         },
       },
       {
         match: {
-          ssl_log_id: ssl_log_id,
+          uri_path: uri_path,
         },
       },
-      {
-        match: {
-          dba_ipaddress_desktop: dba_ipaddress_desktop,
-        },
-      },
-      {
-        match: {
-          dbs_servicetype: dbs_servicetype,
-        }
-      }
     ];
-
-    if (dbl_command !== "") {
-      conditions.push({
-        wildcard: {
-          dbl_command: `*${dbl_command}*`,
-        },
-      });
-    }
-
-
-    if (dba_user_display_name !== "") {
-      conditions.push({
-        wildcard: {
-          dba_user_display_name: `*${dba_user_display_name}*`,
-        },
-      });
-    }
-
-    const dates = [];
-
-    if (dba_last_logged_in_start !== "" && dba_last_logged_in_end !== "") {
-      dates.push({
-        range: {
-          dba_last_logged_in: {
-            gte: dba_last_logged_in_start,
-            lte: dba_last_logged_in_end,
-          },
-        },
-      });
-    }
 
     console.log(dates);
     const searchResult = await client.search({
@@ -97,18 +42,7 @@ async function searchLogs(queryData) {
       body: {
         query: {
           bool: {
-            should: [
-              {
-                bool: {
-                  should: conditions,
-                },
-              },
-              {
-                bool: {
-                  filter: dates,
-                },
-              },
-            ],
+            should: conditions,
           },
         },
       },
@@ -125,12 +59,5 @@ async function searchLogs(queryData) {
     throw e;
   }
 }
-
-// function convertDateToFrontendFormat(dateString) {
-//   if (!dateString) return;
-//   console.log(dateString);
-//   const date = new Date(dateString);
-//   return date.toISOString();
-// }
 
 module.exports = router;
