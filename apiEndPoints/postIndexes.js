@@ -2,13 +2,15 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const router = express.Router();
-const csvParser = require("csv-parser");
+const readline = require("readline");
+// const csvParser = require("csv-parser");
 
 const { client, logFolder } = require("../elasticSearch/elasticsearch");
 const { removeAllIndexes } = require("./deleteIndexes");
 
 router.post("/", async (req, res) => {
   try {
+    console.log("Started Indexing..");
     await removeAllIndexes();
     await ensureIndexExists();
     await indexCsvFile();
@@ -36,42 +38,72 @@ async function indexCsvFile() {
     }
 
     const bulkRequestBody = [];
+    let lineNumber = 0;
 
-    fs.createReadStream(filePath, "utf8")
-      .pipe(csvParser())
-      .on("data", (data) => {
-        const jsonData = {
-          time: data.time,
-          uri_path: data.uri_path,
-        };
+    const readInterface = readline.createInterface({
+      input: fs.createReadStream(filePath, "utf8"),
+      console: false,
+    });
 
-        bulkRequestBody.push({
-          index: { _index: "logs", _type: "_doc" },
-        });
+    readInterface.on("line", (line) => {
+      if (lineNumber === 0) {
+        // Skip header line
+        lineNumber++;
+        return;
+      }
 
-        bulkRequestBody.push(jsonData);
-      })
-      .on("end", () => {
-        if (bulkRequestBody.length > 0) {
-          client
-            .bulk({ body: bulkRequestBody })
-            .then((response) => {
-              if (response.body.errors) {
-                console.error(
-                  "Error during bulk indexing:",
-                  response.body.errors
-                );
-              } else {
-                console.log("CSV file indexed successfully.");
-              }
-            })
-            .catch((error) => {
-              console.error("Error during bulk indexing:", error);
-            });
-        }
+      const [time, uri_path] = line
+        .split('","')
+        .map((entry) => entry.replace(/"/g, ""));
+
+      const jsonData = {
+        time,
+        uri_path,
+      };
+
+      bulkRequestBody.push({
+        index: { _index: "logs", _type: "_doc" },
       });
+
+      bulkRequestBody.push(jsonData);
+
+      // Adjust batch size as needed
+      if (bulkRequestBody.length >= 100) {
+        performBulkIndexing(bulkRequestBody);
+        bulkRequestBody.length = 0;
+      }
+
+      lineNumber++;
+    });
+
+    readInterface.on("close", () => {
+      // Index any remaining documents
+      if (bulkRequestBody.length > 0) {
+        performBulkIndexing(bulkRequestBody);
+      }
+
+      console.log("CSV file indexed successfully.");
+    });
   } catch (error) {
     console.error("Error indexing CSV file:", error);
+  }
+}
+
+async function performBulkIndexing(bulkRequestBody) {
+  try {
+    const response = await client.bulk({ body: bulkRequestBody });
+    if (response.body.errors) {
+      console.error("Errors occurred during bulk indexing:");
+      response.body.items.forEach((action, i) => {
+        if (action.index && action.index.error) {
+          console.error(`Error at item ${i}:`, action.index.error);
+        }
+      });
+    } else {
+      console.log("CSV file indexed successfully.");
+    }
+  } catch (error) {
+    console.error("Error during bulk indexing:", error);
   }
 }
 

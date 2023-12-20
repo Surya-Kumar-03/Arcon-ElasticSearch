@@ -1,4 +1,3 @@
-/* Searches for the query via the indexes generated with elastic search */
 const express = require("express");
 const router = express.Router();
 const { client } = require("../elasticSearch/elasticsearch");
@@ -23,26 +22,22 @@ async function searchLogs(queryData) {
   try {
     const { time, uri_path } = queryData;
 
-    const conditions = [
-      {
-        match: {
-          time: time,
-        },
-      },
-      {
-        match: {
-          uri_path: uri_path,
-        },
-      },
-    ];
+    const conditions = [];
 
-    console.log(dates);
+    if (uri_path && uri_path.trim() !== "") {
+      conditions.push({
+        wildcard: {
+          uri_path: `*${uri_path}*`,
+        },
+      });
+    }
+
     const searchResult = await client.search({
       index: "logs",
       body: {
         query: {
           bool: {
-            should: conditions,
+            should: conditions.length > 0 ? conditions : { match_all: {} },
           },
         },
       },
