@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch
+spec:
+  serviceName: elasticsearch
+  replicas: 10
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:<version>
+        resources:
+          requests:
+            memory: "2Gi"  
+            cpu: "0.5"
+          limits:
+            memory: "4Gi"  
+            cpu: "1"
+        env:
+        - name: discovery.type
+          value: "single-node"  
+        ports:
+        - containerPort: 9200  
+          name: http
+        - containerPort: 9300  
+          name: internal
+
+  volumeClaimTemplates:
+  - metadata:
+      name: elasticsearch-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi  

@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const router = express.Router();
 const readline = require("readline");
+const { performance } = require("perf_hooks");
 // const csvParser = require("csv-parser");
 
 const { client, logFolder } = require("../elasticSearch/elasticsearch");
@@ -10,14 +11,19 @@ const { removeAllIndexes } = require("./deleteIndexes");
 
 router.post("/", async (req, res) => {
   try {
+    var indexingStartTime = performance.now();
     console.log("Started Indexing..");
     await removeAllIndexes();
     await ensureIndexExists();
     await indexCsvFile();
-    res.json({ message: "CSV file indexed successfully." });
+    res.json({ message: "CSV file indexed successfully3." });
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Internal server error." });
+  } finally {
+    indexingEndTime = performance.now();
+    const indexingDuration = indexingEndTime - indexingStartTime;
+    console.log(`Indexing completed in ${indexingDuration} milliseconds.`);
   }
 });
 
@@ -30,7 +36,7 @@ async function ensureIndexExists() {
 
 async function indexCsvFile() {
   try {
-    const filePath = path.join(logFolder, "test.csv");
+    const filePath = path.join(logFolder, "100mb.csv");
 
     if (!fs.existsSync(filePath)) {
       console.error(`CSV file not found at ${filePath}`);
@@ -52,13 +58,10 @@ async function indexCsvFile() {
         return;
       }
 
-      const [time, uri_path] = line
-        .split('","')
-        .map((entry) => entry.replace(/"/g, ""));
-
+      let splitData = line.split(",");
       const jsonData = {
-        time,
-        uri_path,
+        time: splitData[0],
+        uri_path: splitData[1],
       };
 
       bulkRequestBody.push({
@@ -68,7 +71,7 @@ async function indexCsvFile() {
       bulkRequestBody.push(jsonData);
 
       // Adjust batch size as needed
-      if (bulkRequestBody.length >= 100) {
+      if (bulkRequestBody.length >= 100000) {
         performBulkIndexing(bulkRequestBody);
         bulkRequestBody.length = 0;
       }
@@ -82,7 +85,7 @@ async function indexCsvFile() {
         performBulkIndexing(bulkRequestBody);
       }
 
-      console.log("CSV file indexed successfully.");
+      console.log("CSV file indexed successfully1.");
     });
   } catch (error) {
     console.error("Error indexing CSV file:", error);
@@ -100,7 +103,7 @@ async function performBulkIndexing(bulkRequestBody) {
         }
       });
     } else {
-      console.log("CSV file indexed successfully.");
+      console.log("CSV file indexed successfully2.");
     }
   } catch (error) {
     console.error("Error during bulk indexing:", error);
